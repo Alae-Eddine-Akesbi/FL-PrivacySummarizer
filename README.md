@@ -284,8 +284,12 @@ MIT License - Voir LICENSE file
 
 Pour toute question ou support, contacter l'équipe AI Solutions Architecture.
 
+**Équipe de développement :**
+- **Alae-Eddine AKESBI** : [LinkedIn](https://www.linkedin.com/in/alae-eddine-akesbi/)
+- **Baguenna Mohammed Amine** : [LinkedIn](https://www.linkedin.com/in/baguenna-mohammed-amine/) 
+
 ---
 
 **Version**: 1.0.0  
-**Dernière mise à jour**: Décembre 2024  
+**Dernière mise à jour**: Décembre 2025  
 **Status**: Production Ready ✅
