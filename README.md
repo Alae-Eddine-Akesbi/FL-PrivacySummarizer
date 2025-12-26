@@ -286,7 +286,7 @@ Pour toute question ou support, contacter l'équipe AI Solutions Architecture.
 
 **Équipe de développement :**
 - **AKESBI Alae-Eddine** : [LinkedIn](https://www.linkedin.com/in/alae-eddine-akesbi/)
-- **Baguenna Mohammed Amine** : [LinkedIn](https://www.linkedin.com/in/baguenna-mohammed-amine/) 
+- **BAGUENNA Mohammed Amine** : [LinkedIn](https://www.linkedin.com/in/baguenna-mohammed-amine/) 
 
 ---
 
