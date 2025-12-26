@@ -285,7 +285,7 @@ MIT License - Voir LICENSE file
 Pour toute question ou support, contacter l'équipe AI Solutions Architecture.
 
 **Équipe de développement :**
-- **Alae-Eddine AKESBI** : [LinkedIn](https://www.linkedin.com/in/alae-eddine-akesbi/)
+- **AKESBI Alae-Eddine** : [LinkedIn](https://www.linkedin.com/in/alae-eddine-akesbi/)
 - **Baguenna Mohammed Amine** : [LinkedIn](https://www.linkedin.com/in/baguenna-mohammed-amine/) 
 
 ---
