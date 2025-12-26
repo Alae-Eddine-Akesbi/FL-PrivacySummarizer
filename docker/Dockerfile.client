@@ -1,0 +1,44 @@
+FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
+
+# Métadonnées
+LABEL maintainer="AI Solutions Architecture Team"
+LABEL description="Flower Client with FedProx + LoRA for Federated Summarization"
+
+# Éviter les prompts interactifs
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PYTHONUNBUFFERED=1
+ENV CUDA_VISIBLE_DEVICES=0
+
+# Installation des dépendances système
+RUN apt-get update && apt-get install -y \
+    python3-pip \
+    git \
+    wget \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Créer lien symbolique pour python (python3.10 est déjà présent)
+RUN ln -sf /usr/bin/python3.10 /usr/bin/python && \
+    ln -sf /usr/bin/pip3 /usr/bin/pip
+
+# Créer le répertoire de travail
+WORKDIR /app
+
+# Copier les requirements
+COPY requirements.txt .
+
+# Installer les dépendances Python
+RUN pip3 install --no-cache-dir --upgrade pip && \
+    pip3 install --no-cache-dir -r requirements.txt
+
+# Copier tout le code source
+COPY . .
+
+# Créer les répertoires nécessaires
+RUN mkdir -p /app/checkpoints /app/logs /root/.cache
+
+# Exposer le port (optionnel pour les clients)
+EXPOSE 8081
+
+# Point d'entrée
+CMD ["python", "-u", "federated_learning/flower_client.py"]

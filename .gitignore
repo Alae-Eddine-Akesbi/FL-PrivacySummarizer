@@ -1,0 +1,72 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Logs
+*.log
+logs/
+*.out
+
+# Environment
+.env
+.env.local
+
+# Docker
+docker-compose.override.yml
+
+# Model Cache
+.cache/
+*.cache
+
+# Checkpoints
+checkpoints/*
+!checkpoints/.gitkeep
+
+# Datasets
+data/
+*.csv
+*.json
+*.parquet
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Kafka Data
+kafka-data/
+zookeeper-data/

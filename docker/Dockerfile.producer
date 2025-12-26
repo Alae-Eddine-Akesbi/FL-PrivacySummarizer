@@ -1,0 +1,30 @@
+FROM python:3.9-slim
+
+# Métadonnées
+LABEL maintainer="AI Solutions Architecture Team"
+LABEL description="Kafka Producer for Data Ingestion"
+
+ENV PYTHONUNBUFFERED=1
+
+# Installation des dépendances système
+RUN apt-get update && apt-get install -y \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copier les requirements légers
+COPY requirements-producer.txt .
+
+# Installer les dépendances Python (uniquement kafka + datasets)
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements-producer.txt
+
+# Copier le code source
+COPY . .
+
+# Créer les répertoires nécessaires
+RUN mkdir -p /app/logs /root/.cache
+
+# Point d'entrée
+CMD ["python", "-u", "data_ingestion/producer.py"]

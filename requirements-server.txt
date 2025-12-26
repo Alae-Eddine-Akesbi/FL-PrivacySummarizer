@@ -1,0 +1,5 @@
+# Flower Server dependencies (lightweight - no torch/transformers needed)
+flwr==1.6.0
+numpy==1.26.2
+python-dotenv==1.0.0
+pyyaml==6.0.1

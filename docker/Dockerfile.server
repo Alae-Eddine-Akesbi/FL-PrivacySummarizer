@@ -1,0 +1,34 @@
+FROM python:3.9-slim
+
+# Métadonnées
+LABEL maintainer="AI Solutions Architecture Team"
+LABEL description="Flower Server for Federated Learning Orchestration"
+
+ENV PYTHONUNBUFFERED=1
+
+# Installation des dépendances système
+RUN apt-get update && apt-get install -y \
+    git \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copier les requirements légers
+COPY requirements-server.txt .
+
+# Installer les dépendances Python (uniquement flower + numpy)
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements-server.txt
+
+# Copier le code source
+COPY . .
+
+# Créer les répertoires nécessaires
+RUN mkdir -p /app/checkpoints /app/logs
+
+# Exposer le port Flower
+EXPOSE 8080
+
+# Point d'entrée
+CMD ["python", "-u", "federated_learning/flower_server.py"]

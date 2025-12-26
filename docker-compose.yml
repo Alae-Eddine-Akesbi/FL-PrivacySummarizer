@@ -1,0 +1,335 @@
+version: '3.8'
+
+services:
+  # ============================================
+  # Kafka Infrastructure
+  # ============================================
+  
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    volumes:
+      - zookeeper-data:/var/lib/zookeeper/data
+      - zookeeper-logs:/var/lib/zookeeper/log
+    networks:
+      - federated-network
+    healthcheck:
+      test: ["CMD", "bash", "-c", "echo ruok | nc localhost 2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    hostname: kafka
+    container_name: kafka
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - "9092:9092"
+      - "9101:9101"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_JMX_PORT: 9101
+      KAFKA_JMX_HOSTNAME: localhost
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824
+    volumes:
+      - kafka-data:/var/lib/kafka/data
+    networks:
+      - federated-network
+    healthcheck:
+      test: ["CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+
+  # ============================================
+  # Flower Federated Learning Server
+  # ============================================
+  
+  flower-server:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.server
+    container_name: flower-server
+    depends_on:
+      kafka:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - NUM_ROUNDS=10
+      - STEPS_PER_ROUND=50
+      - MIN_FIT_CLIENTS=3
+      - MIN_EVALUATE_CLIENTS=3
+      - MIN_AVAILABLE_CLIENTS=3
+      - FEDPROX_MU=0.01
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - ./logs:/app/logs
+      - ./configs:/app/configs
+      - ./federated_learning:/app/federated_learning
+      - ./evaluation:/app/evaluation
+      - ./utils:/app/utils
+    networks:
+      - federated-network
+    command: python federated_learning/flower_server.py
+    restart: no
+
+  # ============================================
+  # Flower Client - Health Department
+  # ============================================
+  
+  health-client:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.client
+    container_name: health-client
+    depends_on:
+      - flower-server
+      - kafka
+    environment:
+      - CLIENT_ID=health
+      - FLOWER_SERVER_ADDRESS=flower-server:8080
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - KAFKA_TOPIC=health-documents
+      - DATASET_NAME=ccdv/pubmed-summarization
+      # - DATASET_SIZE=20000  # Production
+      - DATASET_SIZE=200      # Testing
+      # - MODEL_NAME=pszemraj/led-large-book-summary  # Large (production)
+      - MODEL_NAME=pszemraj/led-base-book-summary    # Base (testing)
+      - LOAD_IN_4BIT=true
+      - LORA_R=16
+      - LORA_ALPHA=32
+      - LEARNING_RATE=2e-5
+      - FEDPROX_MU=0.01
+      - STEPS_PER_ROUND=50
+      - BATCH_SIZE=20
+      - USE_GRADIENT_CHECKPOINTING=false
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - ./logs:/app/logs
+      - health-cache:/root/.cache
+    networks:
+      - federated-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: python federated_learning/flower_client.py
+    restart: no
+
+  # ============================================
+  # Flower Client - Finance Department
+  # ============================================
+  
+  finance-client:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.client
+    container_name: finance-client
+    depends_on:
+      - flower-server
+      - kafka
+    environment:
+      - CLIENT_ID=finance
+      - FLOWER_SERVER_ADDRESS=flower-server:8080
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - KAFKA_TOPIC=finance-documents
+      - DATASET_NAME=mrSoul7766/ECTSum
+      # - DATASET_SIZE=20000  # Production
+      - DATASET_SIZE=200      # Testing
+      # - MODEL_NAME=pszemraj/led-large-book-summary  # Large (production)
+      - MODEL_NAME=pszemraj/led-base-book-summary    # Base (testing)
+      - LOAD_IN_4BIT=true
+      - LORA_R=16
+      - LORA_ALPHA=32
+      - LEARNING_RATE=2e-5
+      - FEDPROX_MU=0.01
+      - STEPS_PER_ROUND=50
+      - BATCH_SIZE=20
+      - USE_GRADIENT_CHECKPOINTING=false
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - ./logs:/app/logs
+      - finance-cache:/root/.cache
+    networks:
+      - federated-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: python federated_learning/flower_client.py
+    restart: no
+
+  # ============================================
+  # Flower Client - Legal Department
+  # ============================================
+  
+  legal-client:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.client
+    container_name: legal-client
+    depends_on:
+      - flower-server
+      - kafka
+    environment:
+      - CLIENT_ID=legal
+      - FLOWER_SERVER_ADDRESS=flower-server:8080
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - KAFKA_TOPIC=legal-documents
+      - DATASET_NAME=FiscalNote/billsum
+      # - DATASET_SIZE=20000  # Production
+      - DATASET_SIZE=200      # Testing
+      # - MODEL_NAME=pszemraj/led-large-book-summary  # Large (production)
+      - MODEL_NAME=pszemraj/led-base-book-summary    # Base (testing)
+      - LOAD_IN_4BIT=true
+      - LORA_R=16
+      - LORA_ALPHA=32
+      - LEARNING_RATE=2e-5
+      - FEDPROX_MU=0.01
+      - STEPS_PER_ROUND=50
+      - BATCH_SIZE=20
+      - USE_GRADIENT_CHECKPOINTING=false
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - ./logs:/app/logs
+      - legal-cache:/root/.cache
+    networks:
+      - federated-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: python federated_learning/flower_client.py
+    restart: unless-stopped
+
+  # ============================================
+  # Data Producer - Kafka Ingestion
+  # ============================================
+  
+  producer:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.producer
+    container_name: producer
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - KAFKA_HEALTH_TOPIC=health-documents
+      - KAFKA_FINANCE_TOPIC=finance-documents
+      - KAFKA_LEGAL_TOPIC=legal-documents
+      # - DATASET_SIZE_PER_CLIENT=20000  # Production
+      - DATASET_SIZE_PER_CLIENT=1000      # Testing
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./logs:/app/logs
+      - ./data_ingestion:/app/data_ingestion
+      - producer-cache:/root/.cache
+    networks:
+      - federated-network
+    command: python data_ingestion/producer.py
+    restart: on-failure
+
+  # ============================================
+  # Streamlit Dashboard - Monitoring
+  # ============================================
+  
+  dashboard:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.dashboard
+    container_name: dashboard
+    depends_on:
+      - flower-server
+    ports:
+      - "8501:8501"
+    environment:
+      - FLOWER_SERVER_ADDRESS=flower-server:8080
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
+      - MODEL_NAME=pszemraj/led-base-book-summary
+      - LORA_R=16
+      - LORA_ALPHA=32
+      - LOAD_IN_4BIT=false
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./checkpoints:/app/checkpoints
+      - ./logs:/app/logs
+      - ./monitoring:/app/monitoring
+      - ./evaluation:/app/evaluation
+      - ./inference:/app/inference
+    networks:
+      - federated-network
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    command: streamlit run monitoring/streamlit_dashboard.py --server.port=8501 --server.address=0.0.0.0
+    restart: unless-stopped
+
+# ============================================
+# Volumes
+# ============================================
+
+volumes:
+  zookeeper-data:
+    driver: local
+  zookeeper-logs:
+    driver: local
+  kafka-data:
+    driver: local
+  health-cache:
+    driver: local
+  finance-cache:
+    driver: local
+  legal-cache:
+    driver: local
+  producer-cache:
+    driver: local
+
+# ============================================
+# Networks
+# ============================================
+
+networks:
+  federated-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16

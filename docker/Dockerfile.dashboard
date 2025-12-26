@@ -1,0 +1,33 @@
+FROM python:3.9-slim
+
+# Métadonnées
+LABEL maintainer="AI Solutions Architecture Team"
+LABEL description="Streamlit Dashboard for Monitoring"
+
+ENV PYTHONUNBUFFERED=1
+
+# Installation des dépendances système
+RUN apt-get update && apt-get install -y \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copier les requirements légers
+COPY requirements-dashboard.txt .
+
+# Installer les dépendances Python (uniquement streamlit + plotly)
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements-dashboard.txt
+
+# Copier le code source
+COPY . .
+
+# Créer les répertoires nécessaires
+RUN mkdir -p /app/checkpoints /app/logs
+
+# Exposer le port Streamlit
+EXPOSE 8501
+
+# Point d'entrée
+CMD ["streamlit", "run", "monitoring/streamlit_dashboard.py", "--server.port=8501", "--server.address=0.0.0.0"]

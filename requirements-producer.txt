@@ -1,0 +1,7 @@
+# Producer dependencies (lightweight)
+kafka-python==2.0.2
+datasets==2.15.0
+huggingface-hub==0.19.4
+python-dotenv==1.0.0
+pyyaml==6.0.1
+tqdm==4.66.1
